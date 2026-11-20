@@ -1,0 +1,39 @@
+# ros_gz_bridge 설정 파일
+
+# 1. ROS -> Gazebo (명령 전달): cmd_vel 예제용 (본 로봇에는 cmd_vel 구동 플러그인이 없음)
+- ros_topic_name: "/model/my_robot/cmd_vel"
+  gz_topic_name: "/model/my_robot/cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ  # 기호 ']' 와 동일
+
+# 2. Gazebo -> ROS (센서 및 상태 수신): joint_states
+- ros_topic_name: "/joint_states"
+  gz_topic_name: "/world/my_first_world/model/my_robot/joint_state"
+  ros_type_name: "sensor_msgs/msg/JointState"
+  gz_type_name: "gz.msgs.Model"
+  direction: GZ_TO_ROS  # 기호 '[' 와 동일
+
+# 3. Gazebo -> ROS 단방향 시간 동기화
+- ros_topic_name: "/clock"
+  gz_topic_name: "/clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS  # 시뮬레이션 시간이 유일한 기준(ROS에서 역송신하지 않음)
+
+# TF는 Robot State Publisher가 /joint_states로부터 생성한다.
+# /tf 양방향 브리지는 중복 TF 루프 방지를 위해 사용하지 않는다.
+
+# ROS -> Gazebo (Joint 1 명령)
+- ros_topic_name: "/joint1/cmd_pos"
+  gz_topic_name: "/model/my_robot/joint1/cmd_pos"
+  ros_type_name: "std_msgs/msg/Float64"
+  gz_type_name: "gz.msgs.Double"
+  direction: ROS_TO_GZ
+
+# ROS -> Gazebo (Joint 2 명령)
+- ros_topic_name: "/joint2/cmd_pos"
+  gz_topic_name: "/model/my_robot/joint2/cmd_pos"
+  ros_type_name: "std_msgs/msg/Float64"
+  gz_type_name: "gz.msgs.Double"
+  direction: ROS_TO_GZ

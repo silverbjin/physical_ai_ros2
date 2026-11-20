@@ -1,0 +1,39 @@
+"""Ch11 SLAM simulation, local EKF, FSM and optional sensor RViz."""
+import os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+
+
+def generate_launch_description():
+    share = get_package_share_directory('my_quadruped_bot')
+    return LaunchDescription([
+        DeclareLaunchArgument('start_controller', default_value='true',
+                              description='Run the existing FSM to stand; no cmd_vel is sent.'),
+        DeclareLaunchArgument('start_rviz', default_value='true'),
+        DeclareLaunchArgument('lidar_3d', default_value='false'),
+        DeclareLaunchArgument('world', default_value=os.path.join(share, 'worlds', 'sensor_figure_world.sdf')),
+        DeclareLaunchArgument('rviz_config', default_value=os.path.join(share, 'rviz', 'figure_11_2.rviz')),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(
+            os.path.join(share, 'launch', 'simulation.launch.py')),
+            launch_arguments={'world': LaunchConfiguration('world'),
+                'lidar_3d': LaunchConfiguration('lidar_3d')}.items()),
+        Node(package='ros_gz_bridge', executable='parameter_bridge', name='cloud_bridge',
+             parameters=[{'config_file': os.path.join(share, 'config', 'ros_gz_cloud_bridge.yaml')}],
+             condition=IfCondition(LaunchConfiguration('lidar_3d')), output='screen'),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(
+            os.path.join(share, 'launch', 'localization.launch.py'))),
+        Node(package='my_quadruped_bot', executable='trot_controllerFSM',
+             output='screen', parameters=[{'use_sim_time': True}],
+             condition=IfCondition(LaunchConfiguration('start_controller'))),
+        Node(package='my_quadruped_bot', executable='imu_pose_viz',
+             output='screen', parameters=[{'use_sim_time': True}]),
+        Node(package='rviz2', executable='rviz2', name='figure_11_2_rviz',
+             arguments=['-d', LaunchConfiguration('rviz_config')],
+             parameters=[{'use_sim_time': True}],
+             condition=IfCondition(LaunchConfiguration('start_rviz'))),
+    ])
