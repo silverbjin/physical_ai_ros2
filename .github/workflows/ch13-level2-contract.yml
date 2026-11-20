@@ -1,0 +1,28 @@
+name: Ch13 Level 2 portable contracts
+on:
+  push:
+    branches: [feat/ch13-section-13-8]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  level2-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Ch13/ros2_ws/src/ch13_system_validation
+            Ch13/ros2_ws/src/ch13_navigation_reuse
+            Ch13/ros2_ws/src/ch13_mission_orchestration
+            Ch13/scripts/reuse_13_8
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install portable test dependencies
+        run: python -m pip install pytest==8.3.5 numpy==2.2.6 scipy==1.15.3 mujoco==3.3.7
+      - name: Check Level 2 waypoint and filled footprint
+        env:
+          PYTHONPATH: Ch13/ros2_ws/src/ch13_system_validation:Ch13/ros2_ws/src/ch13_navigation_reuse:Ch13/ros2_ws/src/ch13_mission_orchestration
+        run: python -m pytest -q -p no:cacheprovider Ch13/ros2_ws/src/ch13_system_validation/test/test_level2_survey_route.py Ch13/ros2_ws/src/ch13_system_validation/test/test_survey_budget.py Ch13/ros2_ws/src/ch13_navigation_reuse/test/test_callback_timing.py Ch13/ros2_ws/src/ch13_system_validation/test/test_metrics.py Ch13/ros2_ws/src/ch13_system_validation/test/test_education_criteria.py Ch13/ros2_ws/src/ch13_system_validation/test/test_level23_evaluation.py Ch13/ros2_ws/src/ch13_system_validation/test/test_basic_exercise.py Ch13/ros2_ws/src/ch13_system_validation/test/test_case_reader.py -k "not basic_tree_never and not basic_failure_latches"
