@@ -122,11 +122,21 @@ jobs:
               prev = new_commit
               print(f"CHUNK_PUSH_PASS {n}/{len(batches)} {new_commit}", flush=True)
 
-          run("git", "update-index", "--force-remove", BOOTSTRAP, env=env)
-          final_tree = run("git", "write-tree", env=env).decode().strip()
-          print(f"EXPECTED_TREE={TREE} ACTUAL_TREE={final_tree}", flush=True)
-          if final_tree != TREE:
+          # GitHub Actions' GITHUB_TOKEN cannot delete workflows. Verify the
+          # exact upstream tree in a disposable copy of the index, while keeping
+          # this bootstrap workflow until the authenticated GitHub connector
+          # deletes it after the data import is complete.
+          import shutil
+          verify_index = str(Path(".git") / "baseline-verify-index")
+          shutil.copyfile(index_file, verify_index)
+          verify_env = env.copy()
+          verify_env["GIT_INDEX_FILE"] = verify_index
+          run("git", "update-index", "--force-remove", BOOTSTRAP, env=verify_env)
+          exact_tree = run("git", "write-tree", env=verify_env).decode().strip()
+          print(f"EXPECTED_SOURCE_TREE={TREE} VERIFIED_WITHOUT_BOOTSTRAP={exact_tree}", flush=True)
+          if exact_tree != TREE:
               raise SystemExit("BASELINE_TREE_MISMATCH: refusing final import")
+          final_tree = run("git", "write-tree", env=env).decode().strip()
           message = (f"import: exact pre-review baseline snapshot\n\n"
                      f"Source repository: silverbjin/Pysical_AI_ROS2\n"
                      f"Source commit: {SHA}\nSource tree: {TREE}\n"
@@ -139,5 +149,5 @@ jobs:
                           "origin", f"{final}:refs/heads/main"], check=True)
           remote = run("git", "ls-remote", "origin", "refs/heads/main").decode().split()[0]
           assert remote == final, f"Remote head differs: {remote} != {final}"
-          print(f"BASELINE_IMPORT_VERIFIED source={SHA} source_tree={TREE} dest_head={final} dest_tree={final_tree}", flush=True)
+          print(f"BASELINE_IMPORT_STAGED source={SHA} source_tree={TREE} dest_head={final} staged_tree={final_tree} READY_FOR_BOOTSTRAP_REMOVAL=YES", flush=True)
           PY
